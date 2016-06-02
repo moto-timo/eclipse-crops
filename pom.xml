@@ -23,12 +23,17 @@
 		<repo-path>tools/cdt/builds/8.8/nightly</repo-path>
 		-->
 		<sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-		<sonar.jacoco.reportPath>${project.basedir}/../../target/jacoco.exec</sonar.jacoco.reportPath>
+		<sonar.jacoco.unit.test.reportPath>${project.basedir}/../../target/jacoco-ut.exec</sonar.jacoco.unit.test.reportPath>
+		<sonar.jacoco.integration.test.reportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.integration.test.reportPath>
 		<sonar.java.source>1.8</sonar.java.source>
+		<jacoco.it.execution.data.file>${project.build.directory}/coverage-reports/jacoco-it.exec</jacoco.it.execution.data.file>
+		<jacoco.ut.execution.data.file>${project.build.directory}/coverage-reports/jacoco-ut.exec</jacoco.ut.execution.data.file>
 		<target-platform>crops</target-platform>
 		<help-docs-eclipserun-repo>http://download.eclipse.org/eclipse/updates/4.5</help-docs-eclipserun-repo>
 		<tycho.scmUrl>scm:git:https://github.com/crops/eclipse-crops.git</tycho.scmUrl>
 		<base.test.vmargs>-Xms256m -Xmx512m -ea</base.test.vmargs>
+		<skip.unit.tests>false</skip.unit.tests>
+		<skip.integration.tests>true</skip.integration.tests>
 	</properties>
 
 	<licenses>
@@ -283,8 +288,15 @@
 		<module>remote/org.eclipse.cdt.remote.core</module>
 		<module>remote/org.eclipse.cdt.remote-feature</module>
 	-->
-				
+		<module>toolchains/poky/org.yocto.crops.poky.core</module>
+		<module>toolchains/poky/org.yocto.crops.poky.tests</module>
+		<module>toolchains/poky/org.yocto.crops.poky.tests.ui</module>
+		<module>toolchains/poky/org.yocto.crops.poky.ui</module>
+		<module>toolchains/poky/org.yocto.crops.poky.source-feature</module>
+		<module>toolchains/poky/org.yocto.crops.poky-feature</module>
 		<module>toolchains/zephyr/org.yocto.crops.zephyr</module>
+		<module>toolchains/zephyr/org.yocto.crops.zephyr.tests</module>
+		<module>toolchains/zephyr/org.yocto.crops.zephyr.tests.ui</module>
 		<module>toolchains/zephyr/org.yocto.crops.zephyr.source-feature</module>
 		<module>toolchains/zephyr/org.yocto.crops.zephyr-feature</module>
 
@@ -429,6 +441,25 @@
 				</plugins>
 			</build>
 		</profile>
+		<profile>
+			<id>all-tests</id>
+			<properties>
+				<build.profile.id>all-tests</build.profile.id>
+				<!-- Integration AND Unit tests are run. -->
+				<skip.integration.tests>false</skip.integration.tests>
+				<skip.unit.tests>false</skip.unit.tests>
+			</properties>
+		</profile>
+		<profile>
+			<id>integration-test</id>
+			<properties>
+				<!-- Used to locate the profile specific config file. -->
+				<build.profile.id>integration-test</build.profile.id>
+				<!-- ONLY Integration tests are run. -->
+				<skip.integration.tests>false</skip.integration.tests>
+				<skip.unit.tests>true</skip.unit.tests>
+			</properties>
+		</profile>
 	</profiles>
 	<build>
 		<plugins>
@@ -511,20 +542,38 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.7.4.201502262128</version>
+				<version>0.7.5.201505241946</version>
 				<executions>
 					<execution>
-						<id>pre-test</id>
+						<id>pre-unit-test</id>
 						<goals>
 							<goal>prepare-agent</goal>
 						</goals>
 						<configuration>
 						<!-- Where to put jacoco coverage report -->
-							<destFile>${sonar.jacoco.reportPath}</destFile>
+							<destFile>${sonar.jacoco.unit.test.reportPath}</destFile>
 							<includes>
 								<include>org.yocto.crops.*</include>
 							</includes>
 							<append>true</append>
+							<propertyName>surefireArgLine</propertyName>
+						</configuration>
+					</execution>
+					<!--
+						Ensures that the code coverage report for unit tests is created after
+						unit tests have been run.
+					-->
+					<execution>
+						<id>post-unit-test</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+						<configuration>
+							<!-- Sets the path to the file which contains the execution data. -->
+							<dataFile>${sonar.jacoco.unit.test.reportPath}</dataFile>
+							<!-- Sets the output directory for the code coverage report. -->
+							<outputDirectory>${project.reporting.outputDirectory}/jacoco-unit-tests</outputDirectory>
 						</configuration>
 					</execution>
 				</executions>
@@ -584,6 +633,52 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-antrun-plugin</artifactId>
 					<version>1.8</version>
+				</plugin>
+				<plugin>
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>tycho-surefire-plugin</artifactId>
+					<version>${tycho-version}</version>
+					<configuration>
+						<!-- Run headless -->
+						<useUIHarness>false</useUIHarness>
+						<product>org.eclipse.sdk.ide</product>
+						<application>org.eclipse.ui.ide.workbench</application>
+						<!-- Debug can be enabled using the tycho-surefire-plugin -DdebugPort flag -->
+						
+						<!-- Sets the JVM argument line used when unit tests are run. -->
+						<argLine>${surefireArgLine}</argLine>
+						<!-- Skips unit tests if the value of skip.units.tests property is true -->
+						<skipTests>${skip.unit.tests}</skipTests>
+						<!-- Excludes integration tests when unit tests are run. -->
+						<excludes>
+							<exclude>**/IntegrationTest*.java</exclude>
+						</excludes>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>tycho-surefire-plugin</artifactId>
+					<version>${tycho-version}</version>
+					
+					<executions>
+						<!--
+							Ensures that both integration-test and verify goals of the Tycho Surefire
+							plugin are executed.
+						-->
+						<execution>
+							<configuration>
+							    <!-- SWTBot requirements -->
+								<useUIHarness>false</useUIHarness>
+								<useUIThread>false</useUIThread>
+								<product>org.eclipse.sdk.ide</product>
+								<application>org.eclipse.ui.ide.workbench</application>
+								<!-- Sets the JVM argument line used when integration tests are run. -->
+								<argLine>${failsafeArgLine}</argLine>
+								<!-- Skips integration tests if the value of skip.integration.tests property is true -->
+								<skipTests>${skip.integration.tests}</skipTests>
+							</configuration>
+						</execution>
+					</executions>
 				</plugin>
 				<plugin>
 					<groupId>org.codehaus.mojo</groupId>

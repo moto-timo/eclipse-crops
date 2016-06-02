@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %Plugin.name
+Bundle-SymbolicName: org.yocto.crops.poky.ui
+Bundle-Version: 0.1.0.qualifier
+Bundle-Activator: org.yocto.crops.poky.ui.Activator
+Bundle-Vendor: %Plugin.vendor
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-ActivationPolicy: lazy

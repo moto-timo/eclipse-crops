@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: %Plugin.name
+Bundle-SymbolicName: org.yocto.crops.zephyr.tests.ui;singleton:=true
+Bundle-Version: 0.1.0.qualifier
+Bundle-ActivationPolicy: lazy
+Bundle-Vendor: %Plugin.vendor
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Require-Bundle: org.eclipse.swtbot.go
