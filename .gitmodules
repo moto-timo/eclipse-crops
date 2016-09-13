@@ -1,0 +1,3 @@
+[submodule "yocto-docs"]
+	path = yocto-docs
+	url = git://git.yoctoproject.org/yocto-docs
