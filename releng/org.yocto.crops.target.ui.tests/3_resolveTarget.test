@@ -1,0 +1,20 @@
+--- RCPTT testcase ---
+Format-Version: 1.0
+Element-Name: 3_resolveTarget
+Element-Type: testcase
+Element-Version: 3.0
+External-Reference: 
+Id: _s6oHQKuKEeaYH6oxKtWBcg
+Runtime-Version: 2.1.0.201605312320
+Save-Time: 11/15/16 11:42 PM
+Testcase-Type: ecl
+Verifications: _6rMUIKuKEeaYH6oxKtWBcg
+
+------=_.content-0a7243a0-75d3-3d5f-9791-539de0e5b7ac
+Content-Type: text/ecl
+Entry-Name: .content
+
+get-view "Project Explorer" | get-tree | select "org.yocto.crops.target \\[eclipse-crops master\\]/crops.target" 
+    | double-click
+wait 60000
+------=_.content-0a7243a0-75d3-3d5f-9791-539de0e5b7ac--
